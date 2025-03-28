@@ -60,16 +60,16 @@ func main() {
 
 	// --- Create a separate router for app routes ---
 	appRouter := chi.NewRouter()
-	appRouter.Use(chimid.RequestID)
-	appRouter.Use(chimid.RealIP)
-	appRouter.Use(middleware.RecovererMiddleware(logger))
-	appRouter.Use(middleware.MetricsMiddleware(
-		metricsRegistry.HTTPRequestTotal, // Pass the request counter
-		metricsRegistry.RequestDuration,  // Pass the duration histogram
-		metricsRegistry.ResponseSize,     // Pass the response size histogram
-	))
-	appRouter.Use(middleware.LoggerMiddleware(logger))
-	appRouter.Use(chimid.Timeout(60 * time.Second))
+	appRouter.Use(
+		chimid.RequestID,
+		chimid.RealIP,
+		middleware.Recoverer(logger),
+		middleware.InstrumentCounter(metricsRegistry.HTTPRequestTotal),
+		middleware.InstrumentDuration(metricsRegistry.RequestDuration),
+		middleware.InstrumentResponseSize(metricsRegistry.ResponseSize),
+		middleware.Logger(logger),
+		chimid.Timeout(60 * time.Second),
+	)
 
 	// --- HTTP Handlers for app routes ---
 	eventHandler := handlers.NewEventHandler(store, metricsRegistry)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -10,13 +11,19 @@ import (
 	"github.com/kakhavain/telemetry-tracker/internal/storage"
 )
 
+// storer defines the interface for storing events.
+type storer interface {
+	StoreEvent(ctx context.Context, event storage.Event) error
+	Close()
+}
+
 // EventHandler handles incoming telemetry events.
 type EventHandler struct {
-	Store   storage.Storer
+	Store   storer
 	Metrics *metrics.Registry
 }
 
-func NewEventHandler(store storage.Storer, metrics *metrics.Registry) *EventHandler {
+func NewEventHandler(store storer, metrics *metrics.Registry) *EventHandler {
 	return &EventHandler{Store: store, Metrics: metrics}
 }
 

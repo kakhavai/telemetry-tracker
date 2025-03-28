@@ -14,8 +14,7 @@
     COPY . .
     
     # Build the static binary named 'server'
-    # -ldflags="-w -s" strips debug information and symbols for a smaller binary
-    RUN go build -ldflags="-w -s" -o /bin/server ./cmd/server/main.go
+    RUN go build -o /bin/server ./cmd/server/main.go
     
     
     # --- Runtime Stage ---

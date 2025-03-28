@@ -2,26 +2,12 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-// Event represents the structure of the telemetry data we expect and store.
-type Event struct {
-	EventType string          `json:"event_type"`
-	Timestamp time.Time       `json:"timestamp"` // Expect ISO 8601 format
-	Data      json.RawMessage `json:"data"`      // Store arbitrary JSON
-}
-
-// Storer defines the interface for storing events.
-type Storer interface {
-	StoreEvent(ctx context.Context, event Event) error
-	Close()
-}
 
 // PostgresStore implements the Storer interface using PostgreSQL.
 type PostgresStore struct {

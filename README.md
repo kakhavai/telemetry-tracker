@@ -21,7 +21,7 @@ This project serves as the core application component for a larger infrastructur
 
 ## Technology Stack
 
-- **Language:** Go (1.21+)
+- **Language:** Go (1.23+)
 - **Database:** PostgreSQL
 - **HTTP Router:** [chi](https://github.com/go-chi/chi)
 - **Logging:** Go standard library `slog`
@@ -33,14 +33,13 @@ This project serves as the core application component for a larger infrastructur
 
 Before you begin, ensure you have the following installed:
 
-1.  **Go:** Version 1.21 or later. ([Download Go](https://golang.org/dl/))
+1.  **Go:** Version 1.23 or later. ([Download Go](https://golang.org/dl/))
 2.  **Docker & Docker Compose:** Docker Compose is included with Docker Desktop. If using Linux, ensure you have `docker-compose` installed separately if needed. ([Download Docker](https://www.docker.com/products/docker-desktop/))
-3.  **Git:** For cloning the repository. ([Download Git](https://git-scm.com/downloads))
-4.  **make (Optional):** For using Makefile shortcuts.
+3.  **make (Optional):** For using Makefile shortcuts.
     - On macOS: Install Xcode Command Line Tools (`xcode-select --install`).
     - On Debian/Ubuntu: `sudo apt-get update && sudo apt-get install build-essential`.
     - On Fedora/CentOS: `sudo yum groupinstall "Development Tools"`.
-5.  **curl:** Or any other HTTP client for testing endpoints. (Usually pre-installed on Linux/macOS).
+4.  **curl:** Or any other HTTP client for testing endpoints. (Usually pre-installed on Linux/macOS).
 
 ## Getting Started
 
@@ -171,6 +170,7 @@ Ensure the application is running (e.g., via `make compose-up`).
 
 ## Project Structure
 
+```
 ├── cmd/server/ # Main application entrypoint
 ├── internal/ # Internal application code
 ├── .env.example # Example environment variables file
@@ -182,6 +182,7 @@ Ensure the application is running (e.g., via `make compose-up`).
 ├── go.sum # Go module checksums
 ├── README.md
 └── schemas/schema.sql # PostgreSQL database schema
+```
 
 ## Next Steps
 

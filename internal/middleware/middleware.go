@@ -27,8 +27,8 @@ func StructuredLogger(level slog.Level) *slog.Logger {
 // --- Context Key ---
 type loggerKey struct{}
 
-// LoggerMiddleware injects the logger into the request context and logs request completion.
-func LoggerMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
+// Logger injects the logger into the request context and logs request completion.
+func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestID := middleware.GetReqID(r.Context()) // Get Request ID from chi middleware
@@ -65,7 +65,6 @@ func LoggerMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 					slog.Int("status", status),
 					slog.Int("bytes", bytesWritten),
 					slog.Duration("duration", duration),
-					slog.Float64("duration_ms", float64(duration.Microseconds())/1000.0), // Add ms duration
 				)
 			}()
 
@@ -75,29 +74,30 @@ func LoggerMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// MetricsMiddleware wraps promhttp instrumentation using dedicated metrics.
-// UPDATED: Removed .MustCurryWith from duration and size handlers.
-func MetricsMiddleware(
-	reqCounter *prometheus.CounterVec,
-	reqDuration *prometheus.HistogramVec,
-	respSize *prometheus.HistogramVec,
-) func(http.Handler) http.Handler {
+// InstrumentCounter wraps the counter instrumentation.
+func InstrumentCounter(reqCounter *prometheus.CounterVec) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		// Pass the metric vectors directly. The promhttp handlers are smart enough
-		// to use the required labels ("code", "method", "path") if the vector has them.
-		return promhttp.InstrumentHandlerCounter(reqCounter,
-			promhttp.InstrumentHandlerDuration(reqDuration, // Pass HistogramVec directly
-				promhttp.InstrumentHandlerResponseSize(respSize, // Pass HistogramVec directly
-					next,
-				),
-			),
-		)
+		return promhttp.InstrumentHandlerCounter(reqCounter, next)
 	}
 }
 
-// RecovererMiddleware catches panics, logs them with stack trace, and returns a 500 error.
+// InstrumentDuration wraps the duration instrumentation.
+func InstrumentDuration(reqDuration *prometheus.HistogramVec) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return promhttp.InstrumentHandlerDuration(reqDuration, next)
+	}
+}
+
+// InstrumentResponseSize wraps the response size instrumentation.
+func InstrumentResponseSize(respSize *prometheus.HistogramVec) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return promhttp.InstrumentHandlerResponseSize(respSize, next)
+	}
+}
+
+// Recoverer catches panics, logs them with stack trace, and returns a 500 error.
 // It wraps the ResponseWriter to check if headers were already sent.
-func RecovererMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
+func Recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Wrap the response writer *before* calling the next handler.
