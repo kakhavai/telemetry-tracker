@@ -58,38 +58,35 @@ func main() {
 	}
 	defer store.Close()
 
-	// --- HTTP Router and Middleware ---
-	r := chi.NewRouter()
-
-	r.Use(chimid.RequestID)
-	r.Use(chimid.RealIP)
-	r.Use(middleware.RecovererMiddleware(logger))
-	// Pass the specific registry and counter vec to the metrics middleware
-	r.Use(middleware.MetricsMiddleware(
+	// --- Create a separate router for app routes ---
+	appRouter := chi.NewRouter()
+	appRouter.Use(chimid.RequestID)
+	appRouter.Use(chimid.RealIP)
+	appRouter.Use(middleware.RecovererMiddleware(logger))
+	appRouter.Use(middleware.MetricsMiddleware(
 		metricsRegistry.HTTPRequestTotal, // Pass the request counter
 		metricsRegistry.RequestDuration,  // Pass the duration histogram
 		metricsRegistry.ResponseSize,     // Pass the response size histogram
 	))
-	
-	r.Use(middleware.LoggerMiddleware(logger))
-	r.Use(chimid.Timeout(60 * time.Second))
+	appRouter.Use(middleware.LoggerMiddleware(logger))
+	appRouter.Use(chimid.Timeout(60 * time.Second))
 
-	// --- HTTP Handlers ---
+	// --- HTTP Handlers for app routes ---
 	eventHandler := handlers.NewEventHandler(store, metricsRegistry)
 	healthHandler := &handlers.HealthHandler{}
+	appRouter.Post("/events", eventHandler.ServeHTTP)
+	appRouter.Get("/healthz", healthHandler.ServeHTTP)
 
-	// --- Routes ---
-	r.Route("/", func(r chi.Router) {
-		r.Post("/events", eventHandler.ServeHTTP) // Pass the method directly
-		r.Get("/healthz", healthHandler.ServeHTTP)
-		// Use the custom registry for Prometheus handler
-		r.Handle("/metrics", promhttp.HandlerFor(metricsRegistry.Reg, promhttp.HandlerOpts{}))
-	})
+	// --- Main router: Mount app routes and add /metrics separately ---
+	mainRouter := chi.NewRouter()
+	mainRouter.Mount("/", appRouter)
+	// Expose /metrics without wrapping it in our MetricsMiddleware
+	mainRouter.Handle("/metrics", promhttp.HandlerFor(metricsRegistry.Reg, promhttp.HandlerOpts{}))
 
 	// --- HTTP Server ---
 	server := &http.Server{
 		Addr:         ":" + cfg.ServerPort,
-		Handler:      r,
+		Handler:      mainRouter,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

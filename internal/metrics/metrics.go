@@ -60,7 +60,7 @@ func NewRegistry() *Registry {
 				Name:      "http_requests_total",
 				Help:      "Total number of HTTP requests processed.",
 			},
-			[]string{"code", "method", "path"}, // Standard labels populated by promhttp middleware
+			[]string{"code", "method"}, // Standard labels populated by promhttp middleware
 		),
 		RequestDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -69,7 +69,7 @@ func NewRegistry() *Registry {
 				Help:      "Histogram of HTTP request durations in seconds.",
 				Buckets:   prometheus.DefBuckets,        // Default buckets: .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10 seconds
 			},
-			[]string{"code", "method", "path"}, // Match labels with counter and size
+			[]string{"code", "method"}, // Match labels with counter and size
 		),
 		ResponseSize: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -79,7 +79,7 @@ func NewRegistry() *Registry {
 				// Example buckets: 100B, 1KB, 10KB, 100KB, 1MB, 10MB
 				Buckets:   prometheus.ExponentialBuckets(100, 10, 6),
 			},
-			[]string{"code", "method", "path"}, // Match labels with counter and duration
+			[]string{"code", "method"}, // Match labels with counter and duration
 		),
 	}
 
