@@ -1,6 +1,6 @@
 # Telemetry Tracker
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8.svg)](https://golang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker Build Status](https://img.shields.io/badge/Docker-Build-blue)](Dockerfile)
 
