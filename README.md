@@ -74,28 +74,27 @@ The easiest way to run the application and its database locally is using Docker 
 
 1.  **Start Services:**
 
-        - **Using Make:**
-          ```bash
-          make compose-up
-          ```
-          _(This command runs `docker-compose up -d --build`)_
-        - **Without Make:**
-          `bash
-
-    docker-compose up -d --build
-    `      This will build the application's Docker image (if it's not already built or if the source code changed) and start both the`app`and`postgres` containers in the background. The app will wait for the database to be healthy before fully starting.
+    - **Using Make:**
+      ```bash
+      make compose-up
+      ```
+      _(This command runs `docker-compose up -d --build`)_
+    - **Without Make:**
+      ```bash
+      docker-compose up -d --build
+      ```      
+      This will build the application's Docker image (if it's not already built or if the source code changed) and start both the`app`and`postgres` containers in the background. The app will wait for the database to be healthy before fully starting.
 
 2.  **View Logs:**
 
-        - **Using Make:**
-          ```bash
-          make compose-logs
-          ```
-        - **Without Make:**
-          `bash
-
-    docker-compose logs -f app
-    `      Press`Ctrl+C` to stop following logs.
+    - **Using Make:**
+      ```bash
+      make compose-logs
+      ```
+    - **Without Make:**
+      ```bash
+      docker-compose logs -f app
+      ```
 
 3.  **Check Status:**
 
