@@ -42,7 +42,34 @@ services:
       - .env # Load environment variables from .env file
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana-oss
+    container_name: telemetry-grafana-compose
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    container_name: telemetry-prometheus-compose
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app
+    restart: unless-stopped
+
 # ---- Volumes ----
 volumes:
   postgres-data: # Define the named volume for data persistence
+    driver: local
+  grafana-data:
     driver: local
