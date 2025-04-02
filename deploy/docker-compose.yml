@@ -1,0 +1,115 @@
+version: "3.8"
+
+services:
+  # ---- PostgreSQL Database Service ----
+  postgres:
+    image: postgres:15-alpine
+    container_name: telemetry-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../schemas/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_DB: ${DB_NAME:-telemetry}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD?Variable DB_PASSWORD is not set in .env}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-telemetry}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ---- Telemetry Tracker App Service ----
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: telemetry-app
+    depends_on:
+      - postgres
+      - otel-collector
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    env_file:
+      - ../.env
+    restart: unless-stopped
+
+  # ---- OpenTelemetry Collector ----
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: telemetry-otel-collector
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8888:8888" # Prometheus scrape endpoint exposed by the collector
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    restart: unless-stopped
+
+  # ---- Prometheus ----
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: telemetry-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  # ---- Grafana ----
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: telemetry-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ---- Tempo (Traces) ----
+  tempo:
+    image: grafana/tempo:latest
+    container_name: telemetry-tempo
+    ports:
+      - "3200:3200"
+    volumes:
+      - tempo-data:/var/lib/tempo
+    environment:
+      - TEMPO_STORAGE_PATH=/var/lib/tempo
+    restart: unless-stopped
+
+  # ---- Loki (Logs) ----
+  loki:
+    image: grafana/loki:2.8.2
+    container_name: telemetry-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+  grafana-data:
+    driver: local
+  tempo-data:
+    driver: local
+  loki-data:
+    driver: local

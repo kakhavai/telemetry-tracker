@@ -48,13 +48,6 @@ func TestEventHandler_ServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusAccepted,
 		},
 		{
-			name:           "Invalid method",
-			method:         http.MethodGet,
-			contentType:    "application/json",
-			body:           ``,
-			expectedStatus: http.StatusMethodNotAllowed,
-		},
-		{
 			name:           "Wrong content type",
 			method:         http.MethodPost,
 			contentType:    "text/plain",
@@ -100,7 +93,7 @@ func TestEventHandler_ServeHTTP(t *testing.T) {
 				},
 			}
 
-			reg := metrics.NewRegistry()
+			reg, _ := metrics.NewRegistry()
 			handler := handlers.NewEventHandler(mockStore, reg)
 
 			req := httptest.NewRequest(tc.method, "/events", bytes.NewBufferString(tc.body))

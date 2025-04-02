@@ -1,5 +1,3 @@
-# Makefile
-
 .PHONY: all build run clean test lint tidy docker-build \
         compose-up compose-down compose-logs compose-ps help
 
@@ -9,6 +7,7 @@ BINARY_NAME := server
 DOCKER_IMAGE_NAME := $(APP_NAME)
 DOCKER_TAG := latest
 GO_FILES := $(shell find . -name '*.go' -not -path "./vendor/*")
+COMPOSE_FILE := deploy/docker-compose.yml
 
 # Default target
 all: build
@@ -54,30 +53,30 @@ docker-build:
 
 # --- Docker Compose ---
 
-# Start services defined in docker-compose.yml in detached mode. Builds images if necessary.
+# Start services defined in deploy/docker-compose.yml in detached mode.
 compose-up:
-	@echo "Starting Docker Compose services (app & postgres)..."
+	@echo "Starting Docker Compose services using $(COMPOSE_FILE)..."
 	@if [ ! -f .env ]; then \
 		echo "ERROR: .env file not found."; \
 		echo "Please copy .env.example to .env and fill in your database credentials (set DB_HOST=postgres)."; \
 		exit 1; \
 	fi
-	@docker-compose up -d --build
+	@docker-compose -f $(COMPOSE_FILE) up -d --build
 
-# Stop and remove containers, networks defined in docker-compose.yml.
+# Stop and remove containers, networks defined in deploy/docker-compose.yml.
 compose-down:
 	@echo "Stopping Docker Compose services..."
-	@docker-compose down
+	@docker-compose -f $(COMPOSE_FILE) down
 
 # Follow logs from the 'app' service.
 compose-logs:
 	@echo "Following logs for the 'app' service..."
-	@docker-compose logs -f app
+	@docker-compose -f $(COMPOSE_FILE) logs -f app
 
 # Show status of containers managed by docker-compose.
 compose-ps:
 	@echo "Showing status of Docker Compose services..."
-	@docker-compose ps
+	@docker-compose -f $(COMPOSE_FILE) ps
 
 # Show help
 help:
@@ -94,7 +93,7 @@ help:
 	@echo '  clean          Remove build artifacts'
 	@echo ''
 	@echo 'Docker Compose Targets (Recommended for Development):'
-	@echo '  compose-up     Build images (if needed) and start app & postgres containers using docker-compose. Requires .env file.'
+	@echo '  compose-up     Build images (if needed) and start app, DB, and observability containers using docker-compose.'
 	@echo '  compose-down   Stop and remove containers managed by docker-compose.'
 	@echo '  compose-logs   Follow logs from the running app container.'
 	@echo '  compose-ps     Show status of docker-compose managed containers.'
