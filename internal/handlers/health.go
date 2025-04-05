@@ -3,16 +3,23 @@ package handlers
 import (
 	"net/http"
 
-	"go.opentelemetry.io/otel"
+	"github.com/kakhavain/telemetry-tracker/internal/observability"
 )
 
 // HealthHandler provides a simple health check endpoint.
-type HealthHandler struct{}
+type HealthHandler struct {
+	Obs observability.Provider
+}
+
+// NewHealthHandler constructs a HealthHandler with observability.
+func NewHealthHandler(obs observability.Provider) *HealthHandler {
+	return &HealthHandler{Obs: obs}
+}
 
 // ServeHTTP handles GET requests to /healthz.
 func (h *HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Start a span for health check.
-	_, span := otel.Tracer("healthHandler").Start(r.Context(), "HealthCheck")
+	_, span := h.Obs.Tracer().Start(r.Context(), "HealthCheck")
 	defer span.End()
 
 	if r.Method != http.MethodGet {

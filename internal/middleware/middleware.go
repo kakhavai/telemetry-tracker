@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/kakhavain/telemetry-tracker/internal/metrics"
-	"go.opentelemetry.io/otel"
+	"github.com/kakhavain/telemetry-tracker/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -63,12 +63,11 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// TracingMiddleware starts a span for each request. (Optional if otelhttp is used.)
-func TracingMiddleware() func(http.Handler) http.Handler {
+// TracingMiddleware starts a span for each request using the observability tracer.
+func TracingMiddleware(obs observability.Provider) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Start a span using the global tracer.
-			ctx, span := otel.Tracer("middleware").Start(r.Context(), "HTTP "+r.Method+" "+r.URL.Path)
+			ctx, span := obs.Tracer().Start(r.Context(), "HTTP "+r.Method+" "+r.URL.Path)
 			defer span.End()
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

@@ -1,12 +1,10 @@
 package metrics
 
 import (
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
 
 type Registry struct {
-	Meter               metric.Meter
 	EventsReceivedTotal metric.Int64Counter
 	EventsStoredTotal   metric.Int64Counter
 	DBErrorsTotal       metric.Int64Counter
@@ -15,11 +13,8 @@ type Registry struct {
 	ResponseSizeBytes   metric.Int64Histogram
 }
 
-func NewRegistry() (*Registry, error) {
-	meter := otel.GetMeterProvider().Meter("telemetry-tracker")
-
-	r := &Registry{Meter: meter}
-
+func NewRegistry(meter metric.Meter) (*Registry, error) {
+	r := &Registry{}
 	var err error
 
 	if r.EventsReceivedTotal, err = meter.Int64Counter("telemetry_tracker.events_received_total"); err != nil {

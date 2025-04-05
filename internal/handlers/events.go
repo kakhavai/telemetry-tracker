@@ -9,8 +9,8 @@ import (
 
 	"github.com/kakhavain/telemetry-tracker/internal/metrics"
 	appmiddleware "github.com/kakhavain/telemetry-tracker/internal/middleware"
+	"github.com/kakhavain/telemetry-tracker/internal/observability"
 	"github.com/kakhavain/telemetry-tracker/internal/storage"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
@@ -25,26 +25,30 @@ type storer interface {
 
 type eventTypeKey struct{}
 
-
 // EventHandler handles incoming telemetry events.
 type EventHandler struct {
 	Store   storer
 	Metrics *metrics.Registry
+	Obs     observability.Provider
 }
 
-func NewEventHandler(store storer, metrics *metrics.Registry) *EventHandler {
-	return &EventHandler{Store: store, Metrics: metrics}
+func NewEventHandler(store storer, metrics *metrics.Registry, obs observability.Provider) *EventHandler {
+	return &EventHandler{
+		Store: store,
+		Metrics: metrics,
+		Obs: obs,
+	}
 }
 
 // ServeHTTP handles POST requests to /events.
 func (h *EventHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Start a span for this handler.
-	ctx, span := otel.Tracer("eventHandler").Start(r.Context(), "ServeHTTP")
+	ctx, span := h.Obs.Tracer().Start(r.Context(), "ServeHTTP")
 	defer span.End()
 
 	logger := appmiddleware.GetLoggerFromContext(ctx)
 	if logger == nil {
-		logger = slog.Default()
+		logger = h.Obs.Logger()
 		logger.Warn("Logger not found in context for event handler")
 	}
 
@@ -74,11 +78,11 @@ func (h *EventHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, "Failed to store event")
 		return
 	}
-	
+
 	h.Metrics.EventsStoredTotal.Add(ctx, 1)
 	logger.Info("Event stored successfully")
 	span.AddEvent("Event stored successfully", trace.WithAttributes(attribute.String("event_type", event.EventType)))
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	_, _ = w.Write([]byte(`{"status": "accepted"}`))
