@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker Build Status](https://img.shields.io/badge/Docker-Build-blue)](Dockerfile)
 
-A lightweight event processing system written in Go. This service accepts telemetry events via HTTP, stores them in a PostgreSQL database, and exposes basic operational metrics for Prometheus scraping.
+A lightweight event processing system written in Go. This service accepts telemetry events via HTTP, stores them in a PostgreSQL database, and exposes basic operational metrics for OpenTelemetry scraping.
 
 This project serves as the core application component for a larger infrastructure learning project involving Kubernetes (EKS), Terraform, Helm, CI/CD with GitHub Actions, and monitoring.
 
