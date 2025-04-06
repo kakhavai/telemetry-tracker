@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker Build Status](https://img.shields.io/badge/Docker-Build-blue)](Dockerfile)
 
-A lightweight event processing system written in Go. This service accepts telemetry events via HTTP, stores them in a PostgreSQL database, and exposes basic operational metrics for Prometheus scraping.
+A lightweight event processing system written in Go. This service accepts telemetry events via HTTP, stores them in a PostgreSQL database, and exposes basic operational metrics for OpenTelemetry scraping.
 
 This project serves as the core application component for a larger infrastructure learning project involving Kubernetes (EKS), Terraform, Helm, CI/CD with GitHub Actions, and monitoring.
 
@@ -22,11 +22,15 @@ This project serves as the core application component for a larger infrastructur
 ## Technology Stack
 
 - **Language:** Go (1.23+)
-- **Database:** PostgreSQL
 - **HTTP Router:** [chi](https://github.com/go-chi/chi)
-- **Logging:** Go standard library `slog`
-- **Metrics:** [prometheus/client_golang](https://github.com/prometheus/client_golang)
+- **Database:** PostgreSQL
 - **Database Driver:** [pgx](https://github.com/jackc/pgx)
+- **Logging:** Go standard library [`slog`](https://pkg.go.dev/log/slog)
+- **Metrics:** [OpenTelemetry](https://opentelemetry.io/) + [Prometheus](https://github.com/prometheus/client_golang)
+- **Tracing:** [OpenTelemetry](https://opentelemetry.io/) + [Grafana Tempo](https://grafana.com/oss/tempo/)
+- **Log Aggregation:** [OpenTelemetry Logs](https://opentelemetry.io/docs/specs/otel/logs/) + [Grafana Loki](https://grafana.com/oss/loki/)
+- **Observability Collector:** [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib)
+- **Visualization:** [Grafana](https://grafana.com/)
 - **Containerization:** Docker, Docker Compose
 
 ## Prerequisites
@@ -74,47 +78,26 @@ The easiest way to run the application and its database locally is using Docker 
 
 1.  **Start Services:**
 
-    - **Using Make:**
       ```bash
       make compose-up
       ```
-      _(This command runs `docker-compose up -d --build`)_
-    - **Without Make:**
-      ```bash
-      docker-compose up -d --build
-      ```      
-      This will build the application's Docker image (if it's not already built or if the source code changed) and start both the`app`and`postgres` containers in the background. The app will wait for the database to be healthy before fully starting.
-
 2.  **View Logs:**
 
-    - **Using Make:**
       ```bash
       make compose-logs
-      ```
-    - **Without Make:**
-      ```bash
-      docker-compose logs -f app
       ```
 
 3.  **Check Status:**
 
-    - **Using Make:**
       ```bash
       make compose-ps
       ```
-    - **Without Make:**
-      ```bash
-      docker-compose ps
-      ```
 
-4.  **Stop Services:** - **Using Make:**
-    `bash
+4.  **Stop Services:** 
+
+      ```bash
       make compose-down
-      ` - **Without Make:**
-    `bash
-docker-compose down
-`
-    This stops and removes the containers but **preserves the database data** stored in the Docker volume (`postgres-data`).
+      ```
 
 Once running (`make compose-up`), the application will be available at `http://localhost:8080` (or the port specified by `APP_PORT` in your `.env` file).
 
@@ -157,10 +140,10 @@ Ensure the application is running (e.g., via `make compose-up`).
 3.  **Check Metrics:**
 
     ```bash
-    curl http://localhost:8080/metrics
+    http://localhost:3000
     ```
 
-    - Expected: Prometheus metrics text format.
+    - Expected: Prometheus endpoint
 
 4.  **Verify Database Storage:**
     - Connect to Postgres. If using the Compose setup, you can connect to `localhost:5432` with the user/password/db from your `.env` file using `psql` or a GUI tool.
