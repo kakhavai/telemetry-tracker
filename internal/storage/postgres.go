@@ -3,79 +3,83 @@ package storage
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kakhavain/telemetry-tracker/internal/observability"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
-// PostgresStore implements the Storer interface using PostgreSQL.
+// PostgresStore implements the storer interface using PostgreSQL.
 type PostgresStore struct {
 	pool *pgxpool.Pool
+	obs  observability.Provider
 }
 
 // NewPostgresStore creates a new PostgresStore and establishes a connection pool.
-func NewPostgresStore(ctx context.Context, dsn string) (*PostgresStore, error) {
+func NewPostgresStore(ctx context.Context, dsn string, obs observability.Provider) (*PostgresStore, error) {
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse database config: %w", err)
 	}
-
-	// Example pool settings (adjust based on expected load)
-	// config.MaxConns = 15
-	// config.MinConns = 2
-	// config.MaxConnIdleTime = time.Minute * 5
-	// config.MaxConnLifetime = time.Hour
-	// config.HealthCheckPeriod = time.Minute
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
 
-	// Ping the database to ensure connectivity on startup
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := pool.Ping(pingCtx); err != nil {
-		pool.Close() // Close pool if ping fails
-		return nil, fmt.Errorf("unable to ping database on startup: %w", err)
+		pool.Close()
+		return nil, fmt.Errorf("unable to ping database: %w", err)
 	}
 
-	slog.Info("Successfully connected to PostgreSQL and connection pool established")
-	return &PostgresStore{pool: pool}, nil
+	obs.Logger().Info("Connected to PostgreSQL successfully")
+	return &PostgresStore{pool: pool, obs: obs}, nil
 }
 
 // StoreEvent inserts an event into the database.
 func (s *PostgresStore) StoreEvent(ctx context.Context, event Event) error {
+	ctx, span := s.obs.Tracer().Start(ctx, "StoreEvent")
+	defer span.End()
+
 	query := `INSERT INTO events (event_type, timestamp, data) VALUES ($1, $2, $3)`
 
-	// Ensure timestamp is in UTC for consistency, default to Now() if zero
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now().UTC()
 	} else {
 		event.Timestamp = event.Timestamp.UTC()
 	}
 
-
-	// Use context with a timeout for the query
-	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second) // Example query timeout
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	commandTag, err := s.pool.Exec(queryCtx, query, event.EventType, event.Timestamp, event.Data)
+	cmdTag, err := s.pool.Exec(queryCtx, query, event.EventType, event.Timestamp, event.Data)
 	if err != nil {
-		// Consider checking for specific pgx errors if needed
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "DB insert failed")
 		return fmt.Errorf("unable to insert event: %w", err)
 	}
-	if commandTag.RowsAffected() != 1 {
-		return fmt.Errorf("expected 1 row to be affected by insert, but got %d", commandTag.RowsAffected())
+	if cmdTag.RowsAffected() != 1 {
+		err := fmt.Errorf("expected 1 row affected, got %d", cmdTag.RowsAffected())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Unexpected rows affected")
+		return err
 	}
+
+	span.SetAttributes(
+		attribute.String("event_type", event.EventType),
+		attribute.String("timestamp", event.Timestamp.String()),
+	)
 
 	return nil
 }
 
 // Close closes the database connection pool.
 func (s *PostgresStore) Close() {
-	slog.Info("Closing PostgreSQL connection pool...")
+	s.obs.Logger().Info("Closing PostgreSQL connection pool")
 	s.pool.Close()
-	slog.Info("PostgreSQL connection pool closed.")
+	s.obs.Logger().Info("PostgreSQL connection pool closed")
 }

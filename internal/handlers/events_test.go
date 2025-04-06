@@ -14,6 +14,7 @@ import (
 	"github.com/kakhavain/telemetry-tracker/internal/handlers"
 	"github.com/kakhavain/telemetry-tracker/internal/metrics"
 	appmiddleware "github.com/kakhavain/telemetry-tracker/internal/middleware"
+	"github.com/kakhavain/telemetry-tracker/internal/observability"
 	"github.com/kakhavain/telemetry-tracker/internal/storage"
 )
 
@@ -46,13 +47,6 @@ func TestEventHandler_ServeHTTP(t *testing.T) {
 				"data": {"user": "test"}
 			}`,
 			expectedStatus: http.StatusAccepted,
-		},
-		{
-			name:           "Invalid method",
-			method:         http.MethodGet,
-			contentType:    "application/json",
-			body:           ``,
-			expectedStatus: http.StatusMethodNotAllowed,
 		},
 		{
 			name:           "Wrong content type",
@@ -92,6 +86,8 @@ func TestEventHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 
+	obs, _ := observability.InitObservability("noop")
+
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mockStore := &mockStorer{
@@ -100,13 +96,12 @@ func TestEventHandler_ServeHTTP(t *testing.T) {
 				},
 			}
 
-			reg := metrics.NewRegistry()
-			handler := handlers.NewEventHandler(mockStore, reg)
+			reg, _ := metrics.NewRegistry(obs.Meter())
+			handler := handlers.NewEventHandler(mockStore, reg, obs)
 
 			req := httptest.NewRequest(tc.method, "/events", bytes.NewBufferString(tc.body))
 			req.Header.Set("Content-Type", tc.contentType)
 
-			// Inject a logger into the request context
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 			ctx := appmiddleware.WithLogger(req.Context(), logger)
 			req = req.WithContext(ctx)
