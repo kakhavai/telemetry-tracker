@@ -1,13 +1,13 @@
 server:
-  grpc_listen_port: 4317
+  http_listen_port: 3200
+  log_level: info
 
 distributor:
   receivers:
     otlp:
       protocols:
         grpc:
-        http:
-
+          endpoint: "tempo:4317"
 ingester:
   trace_idle_period: 10s
   max_block_duration: 5m
