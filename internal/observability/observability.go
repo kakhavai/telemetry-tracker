@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
@@ -54,6 +55,16 @@ func (o *ObservabilityProvider) Meter() metric.Meter {
 func (o *ObservabilityProvider) Shutdown(ctx context.Context) error {
 	return o.shutdown(ctx)
 }
+
+
+// StructuredLogger creates an OTEL-aware slog logger with JSON output.
+func StructuredLogger(level slog.Level) *slog.Logger {
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     level,
+		AddSource: true,
+	}))
+}
+
 
 func InitObservability(mode string) (Provider, error) {
 	switch mode {
@@ -117,7 +128,11 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	)
 	otel.SetTextMapPropagator(prop)
 
-	traceExporter, err := otlptracehttp.New(ctx)
+	traceExporter, err := otlptracehttp.New(ctx,
+		otlptracehttp.WithEndpoint("otel-collector:4318"),
+		otlptracehttp.WithInsecure(),
+	)
+	
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +140,11 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	shutdownFuncs = append(shutdownFuncs, tp.Shutdown)
 	otel.SetTracerProvider(tp)
 
-	metricExporter, err := otlpmetrichttp.New(ctx)
+	metricExporter, err := otlpmetrichttp.New(ctx,
+		otlpmetrichttp.WithEndpoint("otel-collector:4318"),
+		otlpmetrichttp.WithInsecure(),
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +152,12 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
-	logExporter, err := otlploghttp.New(ctx, otlploghttp.WithInsecure())
+
+	logExporter, err := otlploghttp.New(ctx,
+		otlploghttp.WithEndpoint("otel-collector:4318"),
+		otlploghttp.WithInsecure(),
+	)
+
 	if err != nil {
 		return nil, err
 	}

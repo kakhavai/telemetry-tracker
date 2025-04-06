@@ -65,9 +65,8 @@ func main() {
 	appRouter.Use(
 		chimid.RequestID,
 		chimid.RealIP,
-		middleware.RecordRequestMetrics(metricsRegistry),
-		middleware.Logger(obs.Logger()),
-		middleware.TracingMiddleware(obs),
+		middleware.RequestTelemetry(obs.Logger(), metricsRegistry),
+		middleware.TracingMiddleware(obs.Tracer()),
 		chimid.Timeout(60*time.Second),
 	)
 

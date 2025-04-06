@@ -4,29 +4,21 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/kakhavain/telemetry-tracker/internal/metrics"
-	"github.com/kakhavain/telemetry-tracker/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// StructuredLogger creates an OTEL-aware slog logger with JSON output.
-func StructuredLogger(level slog.Level) *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     level,
-		AddSource: true, // enables source info for debugging
-	}))
-}
 
 type loggerKey struct{}
 
-// Logger middleware injects the logger into the request context and logs request completion.
-func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
+// RequestTelemetry middleware injects a logger into context, records logs, and metrics.
+func RequestTelemetry(logger *slog.Logger, m *metrics.Registry) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestID := middleware.GetReqID(r.Context())
@@ -38,58 +30,44 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 				slog.String("request_id", requestID),
 			)
 
-			// Inject the logger into the request context.
 			ctx := context.WithValue(r.Context(), loggerKey{}, reqLogger)
-			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			rr := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
 			start := time.Now()
-			defer func() {
-				duration := time.Since(start)
-				status := ww.Status()
-				bytes := ww.BytesWritten()
-				logFn := reqLogger.Info
-				if status >= 500 {
-					logFn = reqLogger.Error
-				} else if status >= 400 {
-					logFn = reqLogger.Warn
-				}
-				logFn("Request completed",
-					slog.Int("status", status),
-					slog.Int("bytes", bytes),
-					slog.Duration("duration", duration),
-				)
-			}()
-			next.ServeHTTP(ww, r.WithContext(ctx))
+			next.ServeHTTP(rr, r.WithContext(ctx))
+			duration := time.Since(start)
+
+			status := rr.status
+			bytes := rr.size
+			attrs := []attribute.KeyValue{
+				attribute.String("method", r.Method),
+				attribute.String("status", strconv.Itoa(status)),
+			}
+			m.HTTPRequestTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
+			m.RequestDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(attrs...))
+			m.ResponseSizeBytes.Record(ctx, int64(bytes), metric.WithAttributes(attrs...))
+
+			logFn := reqLogger.Info
+			if status >= 500 {
+				logFn = reqLogger.Error
+			} else if status >= 400 {
+				logFn = reqLogger.Warn
+			}
+			logFn("Request completed",
+				slog.Int("status", status),
+				slog.Int("bytes", bytes),
+				slog.Duration("duration", duration),
+			)
 		})
 	}
 }
 
 // TracingMiddleware starts a span for each request using the observability tracer.
-func TracingMiddleware(obs observability.Provider) func(http.Handler) http.Handler {
+func TracingMiddleware(tracer trace.Tracer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, span := obs.Tracer().Start(r.Context(), "HTTP "+r.Method+" "+r.URL.Path)
+			ctx, span := tracer.Start(r.Context(), "HTTP "+r.Method+" "+r.URL.Path)
 			defer span.End()
 			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
-// RecordRequestMetrics instruments HTTP request metrics.
-func RecordRequestMetrics(m *metrics.Registry) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			rr := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
-			next.ServeHTTP(rr, r)
-			duration := time.Since(start).Seconds()
-			attrs := []attribute.KeyValue{
-				attribute.String("method", r.Method),
-				attribute.String("status", strconv.Itoa(rr.status)),
-			}
-			ctx := r.Context()
-			m.HTTPRequestTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
-			m.RequestDuration.Record(ctx, duration, metric.WithAttributes(attrs...))
-			m.ResponseSizeBytes.Record(ctx, int64(rr.size), metric.WithAttributes(attrs...))
 		})
 	}
 }

@@ -48,7 +48,7 @@ services:
     ports:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
-      - "8888:8888" # Prometheus scrape endpoint exposed by the collector
+      - "8889:8889" # Prometheus scrape endpoint exposed by the collector
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     command: ["--config=/etc/otel-collector-config.yaml"]
@@ -87,10 +87,11 @@ services:
     container_name: telemetry-tempo
     ports:
       - "3200:3200"
+      - "9095:9095"
     volumes:
       - tempo-data:/var/lib/tempo
-    environment:
-      - TEMPO_STORAGE_PATH=/var/lib/tempo
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+    command: ["--config.file=/etc/tempo.yaml"]
     restart: unless-stopped
 
   # ---- Loki (Logs) ----

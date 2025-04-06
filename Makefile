@@ -66,7 +66,7 @@ compose-up:
 # Stop and remove containers, networks defined in deploy/docker-compose.yml.
 compose-down:
 	@echo "Stopping Docker Compose services..."
-	@docker-compose -f $(COMPOSE_FILE) down
+	@docker-compose -f $(COMPOSE_FILE) down -v
 
 # Follow logs from the 'app' service.
 compose-logs:
