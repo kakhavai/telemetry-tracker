@@ -21,12 +21,16 @@ This project serves as the core application component for a larger infrastructur
 
 ## Technology Stack
 
-- **Language:** Go (1.23+)
-- **Database:** PostgreSQL
+- **Language:** Go (1.21+)
 - **HTTP Router:** [chi](https://github.com/go-chi/chi)
-- **Logging:** Go standard library `slog`
-- **Metrics:** [prometheus/client_golang](https://github.com/prometheus/client_golang)
+- **Database:** PostgreSQL
 - **Database Driver:** [pgx](https://github.com/jackc/pgx)
+- **Logging:** Go standard library [`slog`](https://pkg.go.dev/log/slog)
+- **Metrics:** [OpenTelemetry](https://opentelemetry.io/) + [Prometheus](https://github.com/prometheus/client_golang)
+- **Tracing:** [OpenTelemetry](https://opentelemetry.io/) + [Grafana Tempo](https://grafana.com/oss/tempo/)
+- **Log Aggregation:** [OpenTelemetry Logs](https://opentelemetry.io/docs/specs/otel/logs/) + [Grafana Loki](https://grafana.com/oss/loki/)
+- **Observability Collector:** [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib)
+- **Visualization:** [Grafana](https://grafana.com/)
 - **Containerization:** Docker, Docker Compose
 
 ## Prerequisites
