@@ -33,6 +33,5 @@ spec:
         - name: pgdata
           emptyDir: {}
         - name: init-sql
-          hostPath:
-            path: {{ .Values.postgres.initSqlFile }}
-            type: File
+          configMap:
+            name: postgres-init

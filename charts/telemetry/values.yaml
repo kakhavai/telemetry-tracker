@@ -13,7 +13,7 @@ postgres:
   db: telemetry
   user: postgres
   password: changeme
-  initSqlFile: schemas/schema.sql
+  initSqlFile: files/schema.sql
 
 otelCollector:
   image: otel/opentelemetry-collector-contrib:latest
