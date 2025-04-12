@@ -61,7 +61,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - otel-collector
     restart: unless-stopped

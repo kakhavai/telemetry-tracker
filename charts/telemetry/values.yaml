@@ -1,0 +1,99 @@
+image:
+  repository: telemetry-tracker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+postgres:
+  image: postgres:15-alpine
+  port: 5432
+  db: telemetry
+  user: postgres
+  password: changeme
+  initSqlFile: schemas/schema.sql
+
+otelCollector:
+  image: otel/opentelemetry-collector-contrib:latest
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+
+    exporters:
+      logging:
+        loglevel: debug
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [logging]
+
+prometheus:
+  image: prom/prometheus:latest
+  config: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets: ['telemetry-otel-collector:8889']
+
+grafana:
+  image: grafana/grafana-oss:latest
+  port: 3000
+  adminUser: admin
+  adminPassword: admin
+
+tempo:
+  image: grafana/tempo:latest
+  config: |
+    server:
+      http_listen_port: 3200
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+            http:
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tmp/tempo
+
+loki:
+  image: grafana/loki:2.8.2
+  config: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+    ingester:
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      chunk_idle_period: 5m
+      chunk_retain_period: 30s
+    schema_config:
+      configs:
+        - from: 2022-01-01
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 168h
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /tmp/loki/index
+        cache_location: /tmp/loki/cache
+        shared_store: filesystem
+      filesystem:
+        directory: /tmp/loki/chunks

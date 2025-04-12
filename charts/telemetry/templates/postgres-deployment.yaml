@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry-postgres
+  template:
+    metadata:
+      labels:
+        app: telemetry-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: { { .Values.postgres.image } }
+          ports:
+            - containerPort: { { .Values.postgres.port } }
+          env:
+            - name: POSTGRES_DB
+              value: { { .Values.postgres.db | quote } }
+            - name: POSTGRES_USER
+              value: { { .Values.postgres.user | quote } }
+            - name: POSTGRES_PASSWORD
+              value: { { .Values.postgres.password | quote } }
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/
+      volumes:
+        - name: pgdata
+          emptyDir: {}
+        - name: init-sql
+          hostPath:
+            path: { { .Values.postgres.initSqlFile } }
+            type: File
