@@ -4,6 +4,6 @@ metadata:
   name: telemetry-postgres
 spec:
   ports:
-    - port: { { .Values.postgres.port } }
+    - port: {{ .Values.postgres.port }}
   selector:
     app: telemetry-postgres

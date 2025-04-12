@@ -23,3 +23,6 @@ go.work
 
 # Build artifacts
 bin/
+
+# Helm artifacts
+rendered.yaml

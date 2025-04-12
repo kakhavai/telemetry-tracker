@@ -4,4 +4,4 @@ metadata:
   name: loki-config
 data:
   local-config.yaml: |-
-    {{ .Values.loki.config | indent 4 }}
+{{ .Values.loki.config | toYaml | nindent 4 }}

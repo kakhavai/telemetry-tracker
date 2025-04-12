@@ -17,17 +17,15 @@ postgres:
 
 otelCollector:
   image: otel/opentelemetry-collector-contrib:latest
-  config: |
+  config:
     receivers:
       otlp:
         protocols:
-          grpc:
-          http:
-
+          grpc: {}
+          http: {}
     exporters:
       logging:
         loglevel: debug
-
     service:
       pipelines:
         traces:
@@ -36,7 +34,7 @@ otelCollector:
 
 prometheus:
   image: prom/prometheus:latest
-  config: |
+  config:
     global:
       scrape_interval: 15s
     scrape_configs:
@@ -52,15 +50,15 @@ grafana:
 
 tempo:
   image: grafana/tempo:latest
-  config: |
+  config:
     server:
       http_listen_port: 3200
     distributor:
       receivers:
         otlp:
           protocols:
-            grpc:
-            http:
+            grpc: {}
+            http: {}
     storage:
       trace:
         backend: local
@@ -69,7 +67,7 @@ tempo:
 
 loki:
   image: grafana/loki:2.8.2
-  config: |
+  config:
     auth_enabled: false
     server:
       http_listen_port: 3100

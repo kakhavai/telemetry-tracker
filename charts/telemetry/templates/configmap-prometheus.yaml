@@ -4,4 +4,4 @@ metadata:
   name: prometheus-config
 data:
   prometheus.yml: |-
-    {{ .Values.prometheus.config | indent 4 }}
+{{ .Values.prometheus.config | toYaml | nindent 4 }}

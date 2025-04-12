@@ -14,16 +14,16 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: { { .Values.postgres.image } }
+          image: {{ .Values.postgres.image }}
           ports:
-            - containerPort: { { .Values.postgres.port } }
+            - containerPort: {{ .Values.postgres.port }}
           env:
             - name: POSTGRES_DB
-              value: { { .Values.postgres.db | quote } }
+              value: {{ .Values.postgres.db | quote }}
             - name: POSTGRES_USER
-              value: { { .Values.postgres.user | quote } }
+              value: {{ .Values.postgres.user | quote }}
             - name: POSTGRES_PASSWORD
-              value: { { .Values.postgres.password | quote } }
+              value: {{ .Values.postgres.password | quote }}
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data
@@ -34,5 +34,5 @@ spec:
           emptyDir: {}
         - name: init-sql
           hostPath:
-            path: { { .Values.postgres.initSqlFile } }
+            path: {{ .Values.postgres.initSqlFile }}
             type: File

@@ -4,4 +4,4 @@ metadata:
   name: tempo-config
 data:
   tempo.yaml: |-
-    {{ .Values.tempo.config | indent 4 }}
+{{ .Values.tempo.config | toYaml | nindent 4 }}
