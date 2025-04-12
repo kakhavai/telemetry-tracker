@@ -19,7 +19,7 @@
     
     # --- Runtime Stage ---
     # Using alpine as a base. Consider distroless/static for even smaller/more secure images.
-    FROM alpine:3.19
+    FROM alpine:3.21
     
     # Install ca-certificates for HTTPS calls (if any) and timezone data
     # If your app connects to Postgres using TLS, ca-certificates is necessary.
