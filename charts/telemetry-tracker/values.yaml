@@ -1,0 +1,16 @@
+replicaCount: 1
+
+image:
+  repository: telemetry-tracker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+env:
+  LOG_LEVEL: debug
+  POSTGRES_DSN: postgres://postgres:changeme@postgresql:5432/telemetry
+
+resources: {}

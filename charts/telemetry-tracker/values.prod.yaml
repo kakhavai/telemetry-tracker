@@ -1,0 +1,22 @@
+replicaCount: 3
+
+image:
+  repository: telemetry-tracker
+  tag: v1.2.0
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8080
+
+env:
+  LOG_LEVEL: info
+  POSTGRES_DSN: postgres://prod_user:prod_pass@prod-db-host:5432/telemetry
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
