@@ -1,6 +1,6 @@
 auth:
   username: postgres
-  password: changeme
+  password: mysecretpassword
   database: telemetry
 primary:
   initdb:
