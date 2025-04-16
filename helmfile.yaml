@@ -1,0 +1,45 @@
+repositories:
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
+releases:
+  - name: telemetry-tracker
+    chart: ./charts/telemetry-tracker
+    values:
+      - charts/telemetry-tracker/values.yaml
+
+  - name: grafana
+    chart: grafana/grafana
+    values:
+      - infra/grafana-values.yaml
+
+  - name: prometheus
+    chart: prometheus-community/prometheus
+    values:
+      - infra/prometheus-values.yaml
+
+  - name: tempo
+    chart: grafana/tempo
+    values:
+      - infra/tempo-values.yaml
+
+  - name: loki
+    chart: grafana/loki
+    values:
+      - infra/loki-values.yaml
+
+  - name: otel-collector
+    chart: open-telemetry/opentelemetry-collector
+    values:
+      - infra/otel-values.yaml
+
+  - name: postgresql
+    chart: bitnami/postgresql
+    values:
+      - infra/postgres-values.yaml

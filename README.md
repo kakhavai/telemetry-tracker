@@ -78,26 +78,27 @@ The easiest way to run the application and its database locally is using Docker 
 
 1.  **Start Services:**
 
-      ```bash
-      make compose-up
-      ```
+    ```bash
+    make compose-up
+    ```
+
 2.  **View Logs:**
 
-      ```bash
-      make compose-logs
-      ```
+    ```bash
+    make compose-logs
+    ```
 
 3.  **Check Status:**
 
-      ```bash
-      make compose-ps
-      ```
+    ```bash
+    make compose-ps
+    ```
 
-4.  **Stop Services:** 
+4.  **Stop Services:**
 
-      ```bash
-      make compose-down
-      ```
+    ```bash
+    make compose-down
+    ```
 
 Once running (`make compose-up`), the application will be available at `http://localhost:8080` (or the port specified by `APP_PORT` in your `.env` file).
 
@@ -173,6 +174,17 @@ Ensure the application is running (e.g., via `make compose-up`).
 - Set up CI/CD pipelines with GitHub Actions.
 - Integrate with AWS Secrets Manager.
 - Deploy Prometheus and Grafana.
+
+## Useful commands
+
+- helmfile sync
+- helmfile destroy
+- kubectl get pods -n default
+- kubectl delete pvc --all -n default
+- kubectl get svc -A
+- kubectl port-forward svc/telemetry-tracker-telemetry-tracker 8080:8080
+- kubectl port-forward svc/grafana 3000:80
+- kubectl logs deployment/telemetry-tracker-telemetry-tracker -n default
 
 ## License
 

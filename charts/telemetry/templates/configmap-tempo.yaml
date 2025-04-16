@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tempo-config
-data:
-  tempo.yaml: |-
-{{ .Values.tempo.config | toYaml | nindent 4 }}
