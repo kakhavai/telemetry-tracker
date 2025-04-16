@@ -7,7 +7,9 @@ primary:
     scripts:
       init.sql: |-
         CREATE TABLE IF NOT EXISTS events (
-          id SERIAL PRIMARY KEY,
-          name TEXT,
-          created_at TIMESTAMP DEFAULT now()
+            id SERIAL PRIMARY KEY,
+            event_type VARCHAR(255) NOT NULL,
+            timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            data JSONB,
+            received_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP -- Track when the server got it
         );

@@ -1,32 +1,38 @@
-loki:
-  auth_enabled: false
+  loki:
+    auth_enabled: false
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+    ingester:
+      chunk_encoding: snappy
+    querier:
+      # Default is 4, if you have enough memory and CPU you can increase, reduce if OOMing
+      max_concurrent: 4
+    pattern_ingester:
+      enabled: true
+    limits_config:
+      allow_structured_metadata: true
+      volume_enabled: true
 
-  storage:
-    bucketNames:
-      chunks: loki
-      ruler: ruler
-      admin: admin
+  deploymentMode: SimpleScalable
 
-  commonConfig:
-    path_prefix: /var/loki
+  backend:
+    replicas: 1
+  read:
+    replicas: 1
+  write:
+    replicas: 1 # To ensure data durability with replication
 
-  schemaConfig:
-    configs:
-      - from: "2022-01-01"
-        store: boltdb-shipper
-        object_store: filesystem
-        schema: v11
-        index:
-          prefix: index_
-          period: 168h
+  # Enable minio for storage
+  minio:
+    enabled: true
 
-  storage_config:
-    boltdb_shipper:
-      active_index_directory: /var/loki/index
-      cache_location: /var/loki/cache
-      shared_store: filesystem
-    filesystem:
-      directory: /var/loki/chunks
-
-  limits_config:
-    retention_period: 168h
+  gateway:
+    service:
+      type: LoadBalancer
