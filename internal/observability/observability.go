@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
@@ -55,48 +56,66 @@ func (o *ObservabilityProvider) Shutdown(ctx context.Context) error {
 	return o.shutdown(ctx)
 }
 
-func InitObservability(mode string) (Provider, error) {
-	switch mode {
-	case "otel":
-		shutdown, err := SetupOTelSDK(context.Background())
-		if err != nil {
-			return nil, err
-		}
-		return &ObservabilityProvider{
-			logger:   slog.Default().With("env", "otel"),
-			tracer:   otel.Tracer(schemaName),
-			meter:    otel.GetMeterProvider().Meter(schemaName),
-			shutdown: shutdown,
-		}, nil
-
-	case "debug":
-		return &ObservabilityProvider{
-			logger:   slog.Default().With("env", "debug", "debug", true),
-			tracer:   noop.NewTracerProvider().Tracer("debug"),
-			meter:    otel.GetMeterProvider().Meter("debug"),
-			shutdown: func(ctx context.Context) error { return nil },
-		}, nil
-
-	case "local":
-		return &ObservabilityProvider{
-			logger:   slog.Default().With("env", "local"),
-			tracer:   noop.NewTracerProvider().Tracer("local"),
-			meter:    otel.GetMeterProvider().Meter("local"),
-			shutdown: func(ctx context.Context) error { return nil },
-		}, nil
-
-	case "noop":
-		return &ObservabilityProvider{
-			logger:   slog.Default().With("env", "noop"),
-			tracer:   noop.NewTracerProvider().Tracer("noop"),
-			meter:    otel.GetMeterProvider().Meter("noop"),
-			shutdown: func(ctx context.Context) error { return nil },
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unsupported observability mode: %s", mode)
-	}
+// buildRootLogger installs a JSON handler at the requested level,
+// makes it the slog process default, and returns it.
+func buildRootLogger(level slog.Leveler) *slog.Logger {
+    h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+        Level:     level,
+        AddSource: true,
+    })
+    root := slog.New(h)
+    slog.SetDefault(root)
+    return root
 }
+
+func InitObservability(mode string) (Provider, error) {
+    switch mode {
+
+    case "otel":
+        shutdown, err := SetupOTelSDK(context.Background())
+        if err != nil {
+            return nil, err
+        }
+        root := buildRootLogger(slog.LevelInfo)
+        return &ObservabilityProvider{
+            logger:   root.With("env", "otel"),
+            tracer:   otel.Tracer(schemaName),
+            meter:    otel.GetMeterProvider().Meter(schemaName),
+            shutdown: shutdown,
+        }, nil
+
+    case "debug":
+        root := buildRootLogger(slog.LevelDebug)
+        return &ObservabilityProvider{
+            logger:   root.With("env", "debug", "debug", true),
+            tracer:   noop.NewTracerProvider().Tracer("debug"),
+            meter:    otel.GetMeterProvider().Meter("debug"),
+            shutdown: func(context.Context) error { return nil },
+        }, nil
+
+    case "local":
+        root := buildRootLogger(slog.LevelInfo)
+        return &ObservabilityProvider{
+            logger:   root.With("env", "local"),
+            tracer:   noop.NewTracerProvider().Tracer("local"),
+            meter:    otel.GetMeterProvider().Meter("local"),
+            shutdown: func(context.Context) error { return nil },
+        }, nil
+
+    case "noop":
+        root := buildRootLogger(slog.LevelWarn)
+        return &ObservabilityProvider{
+            logger:   root.With("env", "noop"),
+            tracer:   noop.NewTracerProvider().Tracer("noop"),
+            meter:    otel.GetMeterProvider().Meter("noop"),
+            shutdown: func(context.Context) error { return nil },
+        }, nil
+
+    default:
+        return nil, fmt.Errorf("unsupported observability mode: %s", mode)
+    }
+}
+
 
 //TODO: This was taken from https://github.com/grafana/docker-otel-lgtm, review what is actually needed
 func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
