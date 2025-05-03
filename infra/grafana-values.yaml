@@ -1,2 +1,14 @@
 adminUser: admin
 adminPassword: admin
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-gateway
+        isDefault: true
+        jsonData:
+          maxLines: 1000  # optional, adjust if needed

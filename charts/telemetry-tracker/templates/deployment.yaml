@@ -3,7 +3,11 @@ kind: Deployment
 metadata:
   name: {{ include "telemetry-tracker.fullname" . }}
   labels:
-    app: {{ include "telemetry-tracker.name" . }}
+    app.kubernetes.io/name: {{ include "telemetry-tracker.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/part-of: telemetry
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -13,6 +17,11 @@ spec:
     metadata:
       labels:
         app: {{ include "telemetry-tracker.name" . }}
+        app.kubernetes.io/name: {{ include "telemetry-tracker.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/part-of: telemetry
     spec:
       containers:
         - name: app
