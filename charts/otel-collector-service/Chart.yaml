@@ -1,0 +1,4 @@
+apiVersion: v2
+name: otel-collector-service
+version: 0.1.0
+description: Minimal chart for exposing OTEL DaemonSet

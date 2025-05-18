@@ -151,22 +151,6 @@ Ensure the application is running (e.g., via `make compose-up`).
     - Run: `SELECT * FROM events ORDER BY received_at DESC LIMIT 10;`
     - Expected: See your posted events.
 
-## Project Structure
-
-```
-├── cmd/server/ # Main application entrypoint
-├── internal/ # Internal application code
-├── .env.example # Example environment variables file
-├── .gitignore # Files/directories ignored by Git
-├── Dockerfile # For building the app's Docker image
-├── Makefile # Convenience commands (build, compose, etc.)
-├── docker-compose.yml # Docker Compose configuration
-├── go.mod # Go module definition
-├── go.sum # Go module checksums
-├── README.md
-└── schemas/schema.sql # PostgreSQL database schema
-```
-
 ## Next Steps
 
 - Provision cloud infrastructure (VPC, EKS, RDS) using Terraform.
@@ -185,6 +169,8 @@ Ensure the application is running (e.g., via `make compose-up`).
 - kubectl port-forward svc/telemetry-tracker-telemetry-tracker 8080:8080
 - kubectl port-forward svc/grafana 3000:80
 - kubectl logs deployment/telemetry-tracker-telemetry-tracker -n default
+- kind create cluster --name telemetry-tracker --config kind-multinode.yaml
+- kind load docker-image telemetry-tracker:latest --name telemetry-tracker
 
 ## License
 

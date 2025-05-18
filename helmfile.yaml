@@ -43,3 +43,6 @@ releases:
     chart: bitnami/postgresql
     values:
       - infra/postgres-values.yaml
+
+  - name: otel-collector-service
+    chart: ./charts/otel-collector-service
