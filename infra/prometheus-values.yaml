@@ -1,6 +1,5 @@
-  config:
-    scrape_configs:
-    - job_name: 'otel-collector'
-      scrape_interval: 10s
-      static_configs:
-      - targets: ['0.0.0.0:8888']
+extraScrapeConfigs: |
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets:
+          - 'otel-collector.default.svc.cluster.local:8889'

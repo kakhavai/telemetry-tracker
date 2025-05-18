@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -48,11 +49,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	slog.Info("Configuration loaded")
+
 	metricsRegistry, err := metrics.NewRegistry(obs.Meter())
 	if err != nil {
 		slog.Error("Failed to initialize metrics", "error", err)
 		os.Exit(1)
 	}
+
+	slog.Info("metric type",
+		"name", "EventsReceivedTotal",
+		"type", fmt.Sprintf("%T", metricsRegistry.EventsReceivedTotal),
+	)
 
 	store, err := storage.NewPostgresStore(ctx, cfg.DSN, obs)
 	if err != nil {

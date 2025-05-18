@@ -17,6 +17,7 @@ config:
         grpc: {}
         http: {}
   processors:
+    batch: {}
     resource:
       attributes:
         - action: insert
