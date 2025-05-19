@@ -34,9 +34,9 @@ type EventHandler struct {
 
 func NewEventHandler(store storer, metrics *metrics.Registry, obs observability.Provider) *EventHandler {
 	return &EventHandler{
-		Store: store,
+		Store:   store,
 		Metrics: metrics,
-		Obs: obs,
+		Obs:     obs,
 	}
 }
 
@@ -64,7 +64,7 @@ func (h *EventHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, eventTypeKey{}, event.EventType)
 
 	// Record metric for events received.
-	h.Metrics.EventsReceivedTotal.Add(ctx, 1,
+	h.Metrics.EventsReceivedTotal.Add(context.Background(), 1,
 		metric.WithAttributes(attribute.String("event_type", event.EventType)),
 	)
 	logger.Debug("Received event data")

@@ -12,3 +12,9 @@ datasources:
         isDefault: true
         jsonData:
           maxLines: 1000  # optional, adjust if needed
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server
+        jsonData:
+          maxLines: 1000  # optional, adjust if needed

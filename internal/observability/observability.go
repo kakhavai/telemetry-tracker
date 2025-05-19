@@ -59,65 +59,64 @@ func (o *ObservabilityProvider) Shutdown(ctx context.Context) error {
 // buildRootLogger installs a JSON handler at the requested level,
 // makes it the slog process default, and returns it.
 func buildRootLogger(level slog.Leveler) *slog.Logger {
-    h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-        Level:     level,
-        AddSource: true,
-    })
-    root := slog.New(h)
-    slog.SetDefault(root)
-    return root
+	h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     level,
+		AddSource: true,
+	})
+	root := slog.New(h)
+	slog.SetDefault(root)
+	return root
 }
 
 func InitObservability(mode string) (Provider, error) {
-    switch mode {
+	switch mode {
 
-    case "otel":
-        shutdown, err := SetupOTelSDK(context.Background())
-        if err != nil {
-            return nil, err
-        }
-        root := buildRootLogger(slog.LevelInfo)
-        return &ObservabilityProvider{
-            logger:   root.With("env", "otel"),
-            tracer:   otel.Tracer(schemaName),
-            meter:    otel.GetMeterProvider().Meter(schemaName),
-            shutdown: shutdown,
-        }, nil
+	case "otel":
+		shutdown, err := SetupOTelSDK(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		root := buildRootLogger(slog.LevelInfo)
+		return &ObservabilityProvider{
+			logger:   root.With("env", "otel"),
+			tracer:   otel.Tracer(schemaName),
+			meter:    otel.GetMeterProvider().Meter(schemaName),
+			shutdown: shutdown,
+		}, nil
 
-    case "debug":
-        root := buildRootLogger(slog.LevelDebug)
-        return &ObservabilityProvider{
-            logger:   root.With("env", "debug", "debug", true),
-            tracer:   noop.NewTracerProvider().Tracer("debug"),
-            meter:    otel.GetMeterProvider().Meter("debug"),
-            shutdown: func(context.Context) error { return nil },
-        }, nil
+	case "debug":
+		root := buildRootLogger(slog.LevelDebug)
+		return &ObservabilityProvider{
+			logger:   root.With("env", "debug", "debug", true),
+			tracer:   noop.NewTracerProvider().Tracer("debug"),
+			meter:    otel.GetMeterProvider().Meter("debug"),
+			shutdown: func(context.Context) error { return nil },
+		}, nil
 
-    case "local":
-        root := buildRootLogger(slog.LevelInfo)
-        return &ObservabilityProvider{
-            logger:   root.With("env", "local"),
-            tracer:   noop.NewTracerProvider().Tracer("local"),
-            meter:    otel.GetMeterProvider().Meter("local"),
-            shutdown: func(context.Context) error { return nil },
-        }, nil
+	case "local":
+		root := buildRootLogger(slog.LevelInfo)
+		return &ObservabilityProvider{
+			logger:   root.With("env", "local"),
+			tracer:   noop.NewTracerProvider().Tracer("local"),
+			meter:    otel.GetMeterProvider().Meter("local"),
+			shutdown: func(context.Context) error { return nil },
+		}, nil
 
-    case "noop":
-        root := buildRootLogger(slog.LevelWarn)
-        return &ObservabilityProvider{
-            logger:   root.With("env", "noop"),
-            tracer:   noop.NewTracerProvider().Tracer("noop"),
-            meter:    otel.GetMeterProvider().Meter("noop"),
-            shutdown: func(context.Context) error { return nil },
-        }, nil
+	case "noop":
+		root := buildRootLogger(slog.LevelWarn)
+		return &ObservabilityProvider{
+			logger:   root.With("env", "noop"),
+			tracer:   noop.NewTracerProvider().Tracer("noop"),
+			meter:    otel.GetMeterProvider().Meter("noop"),
+			shutdown: func(context.Context) error { return nil },
+		}, nil
 
-    default:
-        return nil, fmt.Errorf("unsupported observability mode: %s", mode)
-    }
+	default:
+		return nil, fmt.Errorf("unsupported observability mode: %s", mode)
+	}
 }
 
-
-//TODO: This was taken from https://github.com/grafana/docker-otel-lgtm, review what is actually needed
+// TODO: This was taken from https://github.com/grafana/docker-otel-lgtm, review what is actually needed
 func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	var shutdownFuncs []func(context.Context) error
 
@@ -159,7 +158,6 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	meterProvider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter)))
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
-
 
 	logExporter, err := otlploghttp.New(ctx,
 		otlploghttp.WithEndpoint("otel-collector:4318"),

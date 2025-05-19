@@ -8,6 +8,8 @@ A lightweight event processing system written in Go. This service accepts teleme
 
 This project serves as the core application component for a larger infrastructure learning project involving Kubernetes (EKS), Terraform, Helm, CI/CD with GitHub Actions, and monitoring.
 
+---
+
 ## Features
 
 - **Event Ingestion:** Accepts JSON events via `POST /events`.
@@ -16,161 +18,209 @@ This project serves as the core application component for a larger infrastructur
 - **Health Check:** Provides a simple health endpoint at `/healthz`.
 - **Structured Logging:** Outputs JSON logs for better observability.
 - **Containerized:** Includes a `Dockerfile`.
-- **Docker Compose:** Includes `docker-compose.yml` for easy local development setup.
+- **Docker Compose:** Includes `docker-compose.yml` for local dev.
 - **Graceful Shutdown:** Handles termination signals for clean shutdown.
+
+---
 
 ## Technology Stack
 
 - **Language:** Go (1.23+)
 - **HTTP Router:** [chi](https://github.com/go-chi/chi)
-- **Database:** PostgreSQL
-- **Database Driver:** [pgx](https://github.com/jackc/pgx)
+- **Database:** PostgreSQL via [pgx](https://github.com/jackc/pgx)
 - **Logging:** Go standard library [`slog`](https://pkg.go.dev/log/slog)
-- **Metrics:** [OpenTelemetry](https://opentelemetry.io/) + [Prometheus](https://github.com/prometheus/client_golang)
-- **Tracing:** [OpenTelemetry](https://opentelemetry.io/) + [Grafana Tempo](https://grafana.com/oss/tempo/)
-- **Log Aggregation:** [OpenTelemetry Logs](https://opentelemetry.io/docs/specs/otel/logs/) + [Grafana Loki](https://grafana.com/oss/loki/)
-- **Observability Collector:** [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib)
+- **Metrics & Tracing:** [OpenTelemetry](https://opentelemetry.io/), Prometheus, Grafana Tempo
+- **Log Aggregation:** OTEL Logs + Grafana Loki
+- **Collector:** [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib)
 - **Visualization:** [Grafana](https://grafana.com/)
-- **Containerization:** Docker, Docker Compose
+- **Deployment:** Docker, Docker Compose, Helmfile, Kubernetes
+
+---
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Install the following tools:
 
-1.  **Go:** Version 1.23 or later. ([Download Go](https://golang.org/dl/))
-2.  **Docker & Docker Compose:** Docker Compose is included with Docker Desktop. If using Linux, ensure you have `docker-compose` installed separately if needed. ([Download Docker](https://www.docker.com/products/docker-desktop/))
-3.  **make (Optional):** For using Makefile shortcuts.
-    - On macOS: Install Xcode Command Line Tools (`xcode-select --install`).
-    - On Debian/Ubuntu: `sudo apt-get update && sudo apt-get install build-essential`.
-    - On Fedora/CentOS: `sudo yum groupinstall "Development Tools"`.
-4.  **curl:** Or any other HTTP client for testing endpoints. (Usually pre-installed on Linux/macOS).
+- [Go (1.23+)](https://golang.org/dl/)
+- [Docker + Docker Compose](https://www.docker.com/products/docker-desktop)
+- `make` (optional)
+- `curl`
+- `helm`, `helmfile`, `kubectl`, `kind` (for Kubernetes deployments)
+
+---
 
 ## Getting Started
 
-1.  **Clone the Repository:**
+```bash
+git clone https://github.com/kakhavain/telemetry-tracker.git
+cd telemetry-tracker
+```
 
-    ```bash
-    git clone https://github.com/kakhavain/telemetry-tracker.git # <-- Use your repo URL
-    cd telemetry-tracker
-    ```
+```bash
+go mod tidy
+```
 
-2.  **Install Go Dependencies:**
+```bash
+cp .env.example .env
+# Edit .env to configure DB_PASSWORD, DB_HOST, etc.
+```
 
-    ```bash
-    go mod tidy
-    ```
+---
 
-3.  **Prepare Configuration:**
-    - Copy the environment variable template:
-      ```bash
-      cp .env.example .env
-      ```
-    - Edit the new `.env` file:
-      - **Set `DB_PASSWORD`:** Change `mysecretpassword` to a secure password. This password will be used by Docker Compose to initialize the Postgres container.
-      - **Verify `DB_HOST`:** Ensure `DB_HOST` is set to `postgres`. This is the service name defined in `docker-compose.yml` and allows the app container to find the database container.
-      - Adjust `DB_USER`, `DB_NAME`, `DB_PORT`, `APP_PORT` only if necessary.
+## Running with Docker Compose (Local Dev)
 
-**Important:** The `.env` file contains sensitive information and **should NOT be committed to Git**. The `.gitignore` file is configured to ignore it.
+```bash
+make compose-up
+```
 
-## Running the Application (Docker Compose - Recommended)
+```bash
+make compose-logs
+```
 
-The easiest way to run the application and its database locally is using Docker Compose. Make sure you have created and correctly configured your `.env` file first.
+```bash
+make compose-ps
+```
 
-1.  **Start Services:**
+```bash
+make compose-down
+```
 
-    ```bash
-    make compose-up
-    ```
+Access app at: `http://localhost:8080`
 
-2.  **View Logs:**
+---
 
-    ```bash
-    make compose-logs
-    ```
+## Running Without Docker Compose
 
-3.  **Check Status:**
+1. Start a local Postgres instance (via Docker or native).
+2. Set `DB_HOST` to `localhost` in `.env`.
+3. Export your environment variables:
 
-    ```bash
-    make compose-ps
-    ```
+```bash
+export $(grep -v '^#' .env | xargs)
+```
 
-4.  **Stop Services:**
+4. Run the app:
 
-    ```bash
-    make compose-down
-    ```
+```bash
+make run
+# or
+go run ./cmd/server/main.go
+```
 
-Once running (`make compose-up`), the application will be available at `http://localhost:8080` (or the port specified by `APP_PORT` in your `.env` file).
+---
 
-## Running Locally (Without Docker Compose)
+## Running with Helmfile (Kubernetes Deployment)
 
-You can still run the Go application directly on your host, but you will need to:
+This is separate from Docker Compose and intended for local Kind or remote clusters.
 
-1.  **Run PostgreSQL separately:** Use the `docker run...` command from previous instructions or install and run Postgres natively.
-2.  **Set `DB_HOST` appropriately:** In your `.env` file or exported environment variables, set `DB_HOST` to `localhost` (or wherever your separately running Postgres is accessible).
-3.  **Export Environment Variables:** Make sure all required variables from `.env` are exported into your shell session.
-    ```bash
-    export $(grep -v '^#' .env | xargs) # Simple way, use with caution
-    make run
-    # or
-    # go run ./cmd/server/main.go
-    ```
+### Start Kind Cluster
 
-## Testing the Application
+```bash
+kind create cluster --name telemetry-tracker --config kind-multinode.yaml
+```
 
-Ensure the application is running (e.g., via `make compose-up`).
+### Load Image into Kind
 
-1.  **Send an Event:**
+```bash
+make docker-build
+```
 
-    ```bash
-    curl -X POST http://localhost:8080/events \
-         -H "Content-Type: application/json" \
-         -d '{ ... event payload ... }' # Use a valid JSON event
-    ```
+```bash
+kind load docker-image telemetry-tracker:latest --name telemetry-tracker
+```
 
-    - Expected: `{"status": "accepted"}` (HTTP 202). Check `make compose-logs`.
+### Deploy with Helmfile
 
-2.  **Check Health:**
+```bash
+helmfile sync
+```
 
-    ```bash
-    curl http://localhost:8080/healthz
-    ```
+### Tear Down
 
-    - Expected: `OK` (HTTP 200).
+```bash
+helmfile destroy
+```
 
-3.  **Check Metrics:**
+### Debugging & Logs
 
-    ```bash
-    http://localhost:3000
-    ```
+```bash
+kubectl get pods -n default
+kubectl logs deployment/telemetry-tracker-telemetry-tracker -n default
+kubectl port-forward svc/telemetry-tracker-telemetry-tracker 8080:8080
+kubectl port-forward svc/grafana 3000:80
+```
 
-    - Expected: Prometheus endpoint
+---
 
-4.  **Verify Database Storage:**
-    - Connect to Postgres. If using the Compose setup, you can connect to `localhost:5432` with the user/password/db from your `.env` file using `psql` or a GUI tool.
-    - Run: `SELECT * FROM events ORDER BY received_at DESC LIMIT 10;`
-    - Expected: See your posted events.
+## Testing
 
-## Next Steps
+```bash
+curl -X POST http://localhost:8080/events \
+     -H "Content-Type: application/json" \
+     -d '{ "type": "test", "message": "hello world" }'
+```
 
-- Provision cloud infrastructure (VPC, EKS, RDS) using Terraform.
-- Package the application using Helm.
-- Set up CI/CD pipelines with GitHub Actions.
-- Integrate with AWS Secrets Manager.
-- Deploy Prometheus and Grafana.
+```bash
+curl http://localhost:8080/healthz
+```
 
-## Useful commands
+---
 
-- helmfile sync
-- helmfile destroy
-- kubectl get pods -n default
-- kubectl delete pvc --all -n default
-- kubectl get svc -A
-- kubectl port-forward svc/telemetry-tracker-telemetry-tracker 8080:8080
-- kubectl port-forward svc/grafana 3000:80
-- kubectl logs deployment/telemetry-tracker-telemetry-tracker -n default
-- kind create cluster --name telemetry-tracker --config kind-multinode.yaml
-- kind load docker-image telemetry-tracker:latest --name telemetry-tracker
+## Verify DB Events
+
+```sql
+SELECT * FROM events ORDER BY received_at DESC LIMIT 10;
+```
+
+---
+
+## Useful Commands
+
+```bash
+helmfile sync
+```
+
+```bash
+helmfile destroy
+```
+
+```bash
+kubectl get pods -n default
+```
+
+```bash
+kubectl delete pvc --all -n default
+```
+
+```bash
+kubectl get svc -A
+```
+
+```bash
+kubectl port-forward svc/telemetry-tracker-telemetry-tracker 8080:8080
+```
+
+```bash
+kubectl port-forward svc/grafana 3000:80
+```
+
+```bash
+kubectl logs deployment/telemetry-tracker-telemetry-tracker -n default
+```
+
+```bash
+kind create cluster --name telemetry-tracker --config kind-multinode.yaml
+```
+
+```bash
+kind load docker-image telemetry-tracker:latest --name telemetry-tracker
+```
+
+```bash
+kubectl rollout restart deployment telemetry-tracker-telemetry-tracker
+```
+
+---
 
 ## License
 

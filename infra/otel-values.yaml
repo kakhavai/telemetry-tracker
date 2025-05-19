@@ -29,6 +29,8 @@ config:
     loki:
       endpoint: http://loki-gateway/loki/api/v1/push
       tls: { insecure: true }
+    debug:
+      verbosity: detailed
   service:
     pipelines:
       logs:
@@ -36,5 +38,5 @@ config:
         exporters:  [loki]
       metrics:
         receivers: [otlp] 
-        processors: [batch, resource]
+        processors: [resource]
         exporters: [prometheus]

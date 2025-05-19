@@ -22,6 +22,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimid "github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 func main() {
@@ -57,10 +60,36 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("meter type: %T\n", obs.Meter())
+
+	counter, err := obs.Meter().Int64Counter("telemetry_tracker.test_direct_counter")
+
+	if err != nil {
+		slog.Error("Failed to initialize metrics", "error", err)
+		os.Exit(1)
+	}
+
 	slog.Info("metric type",
 		"name", "EventsReceivedTotal",
 		"type", fmt.Sprintf("%T", metricsRegistry.EventsReceivedTotal),
 	)
+
+	for i := 0; i < 10000; i++ {
+		counter.Add(context.Background(), 1,
+			metric.WithAttributes(attribute.String("source", "manual-test")),
+		)
+
+	}
+
+	if f, ok := otel.GetMeterProvider().(interface {
+		ForceFlush(ctx context.Context) error
+	}); ok {
+		if err := f.ForceFlush(context.Background()); err != nil {
+			slog.Error("ForceFlush failed", "error", err)
+		} else {
+			slog.Info("ForceFlush succeeded")
+		}
+	}
 
 	store, err := storage.NewPostgresStore(ctx, cfg.DSN, obs)
 	if err != nil {
